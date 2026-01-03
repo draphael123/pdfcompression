@@ -420,10 +420,17 @@ function escapeHtml(text) {
 // Suggestions form
 const suggestionForm = document.getElementById('suggestionForm');
 const suggestionMessage = document.getElementById('suggestionMessage');
+const submitBtn = suggestionForm ? suggestionForm.querySelector('.submit-suggestion-btn') : null;
 
 if (suggestionForm) {
     suggestionForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        
+        // Hide any previous messages
+        if (suggestionMessage) {
+            suggestionMessage.style.display = 'none';
+        }
         
         const name = document.getElementById('suggestionName').value || 'Anonymous';
         const email = document.getElementById('suggestionEmail').value || '';
@@ -432,6 +439,12 @@ if (suggestionForm) {
         if (!suggestion.trim()) {
             showSuggestionMessage('Please enter your suggestion.', 'error');
             return;
+        }
+        
+        // Show loading state
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
         }
         
         try {
@@ -460,6 +473,10 @@ if (suggestionForm) {
             if (data.success) {
                 showSuggestionMessage(data.message || 'Thank you for your suggestion!', 'success');
                 suggestionForm.reset();
+                // Reload suggestions to show the new one
+                setTimeout(() => {
+                    loadSuggestions();
+                }, 500);
             } else {
                 showSuggestionMessage(data.error || 'Failed to submit suggestion.', 'error');
             }
@@ -472,6 +489,12 @@ if (suggestionForm) {
                 errorMessage = 'Server error. Please try again later.';
             }
             showSuggestionMessage('An error occurred: ' + errorMessage, 'error');
+        } finally {
+            // Restore button state
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Suggestion';
+            }
         }
     });
 }
@@ -481,17 +504,29 @@ function showSuggestionMessage(message, type) {
         suggestionMessage.textContent = message;
         suggestionMessage.className = `suggestion-message ${type}`;
         suggestionMessage.style.display = 'block';
+        suggestionMessage.style.opacity = '0';
+        
+        // Animate in
+        setTimeout(() => {
+            suggestionMessage.style.transition = 'opacity 0.3s ease';
+            suggestionMessage.style.opacity = '1';
+        }, 10);
         
         // Scroll to message
-        suggestionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        
         setTimeout(() => {
-            if (type === 'success') {
-                suggestionMessage.style.display = 'none';
-                // Reload suggestions after successful submission
-                loadSuggestions();
-            }
-        }, 5000);
+            suggestionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+        
+        // Auto-hide success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                suggestionMessage.style.transition = 'opacity 0.3s ease';
+                suggestionMessage.style.opacity = '0';
+                setTimeout(() => {
+                    suggestionMessage.style.display = 'none';
+                }, 300);
+            }, 5000);
+        }
     }
 }
 

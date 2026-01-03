@@ -744,9 +744,15 @@ header h1 {
     transition: all 0.3s ease;
 }
 
-.submit-suggestion-btn:hover {
+.submit-suggestion-btn:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+}
+
+.submit-suggestion-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .suggestion-message {
