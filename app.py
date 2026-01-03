@@ -659,37 +659,57 @@ def add_comment(post_id):
 def health():
     return jsonify({'status': 'ok'})
 
-@app.route('/')
-def index():
-    """Serve index.html - fallback if Vercel routing doesn't catch it"""
+def serve_static_file(filename):
+    """Helper function to serve static files in serverless environment"""
     try:
-        # In serverless, files are in the function directory
-        # Try multiple possible locations
+        # Try multiple possible locations for static files
         possible_paths = [
-            'index.html',
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html'),
-            os.path.join(get_base_dir(), '..', 'index.html'),
+            filename,
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),
         ]
         
-        for index_path in possible_paths:
-            if os.path.exists(index_path):
-                return send_file(index_path)
+        for file_path in possible_paths:
+            if os.path.exists(file_path):
+                # Determine content type
+                if filename.endswith('.html'):
+                    content_type = 'text/html'
+                elif filename.endswith('.css'):
+                    content_type = 'text/css'
+                elif filename.endswith('.js'):
+                    content_type = 'application/javascript'
+                elif filename.endswith('.json'):
+                    content_type = 'application/json'
+                else:
+                    content_type = None
+                
+                if content_type:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    return content, 200, {'Content-Type': content_type}
+                else:
+                    return send_file(file_path)
         
-        # If not found, return HTML content directly
-        # This ensures the route always works
-        return '''
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta http-equiv="refresh" content="0; url=/index.html">
-        </head>
-        <body>
-            <p>Redirecting to <a href="/index.html">index.html</a></p>
-        </body>
-        </html>
-        ''', 200, {'Content-Type': 'text/html'}
+        return jsonify({'error': f'{filename} not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/')
+def index():
+    """Serve index.html"""
+    return serve_static_file('index.html')
+
+@app.route('/forum.html')
+def forum():
+    """Serve forum.html"""
+    return serve_static_file('forum.html')
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """Serve static files (CSS, JS, etc.)"""
+    # Only serve known static file types
+    if filename.endswith(('.css', '.js', '.html', '.json')):
+        return serve_static_file(filename)
+    return jsonify({'error': 'Not found'}), 404
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
