@@ -31,6 +31,10 @@ instance/
 uploads/
 compressed/
 
+# Data files
+forum_data.json
+suggestions.json
+
 # IDE
 .vscode/
 .idea/

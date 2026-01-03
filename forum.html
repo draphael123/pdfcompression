@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Forum - PDF Compressor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background-animation"></div>
+    <div class="container forum-container">
+        <header>
+            <div class="logo-container">
+                <div class="logo-icon">💬</div>
+                <h1>Community Forum</h1>
+            </div>
+            <p class="subtitle">Share tips, ask questions, and connect with other users</p>
+            <a href="/" class="back-home-btn">← Back to Compressor</a>
+        </header>
+
+        <section class="new-post-section">
+            <h2>Create New Post</h2>
+            <form id="newPostForm" class="post-form">
+                <div class="form-group">
+                    <input type="text" id="postAuthor" placeholder="Your Name (Optional)" class="form-input">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="postTitle" placeholder="Post Title" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <textarea id="postContent" placeholder="What's on your mind?" class="form-textarea" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="submit-post-btn">Create Post</button>
+                <div id="postMessage" class="post-message" style="display: none;"></div>
+            </form>
+        </section>
+
+        <section class="posts-section">
+            <h2>Recent Posts</h2>
+            <div id="postsContainer" class="posts-container">
+                <div class="loading">Loading posts...</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="forum.js"></script>
+</body>
+</html>
+

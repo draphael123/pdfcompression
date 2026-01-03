@@ -179,3 +179,60 @@ tryAgainBtn.addEventListener('click', () => {
     fileInput.value = '';
 });
 
+// Suggestions form
+const suggestionForm = document.getElementById('suggestionForm');
+const suggestionMessage = document.getElementById('suggestionMessage');
+
+if (suggestionForm) {
+    suggestionForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('suggestionName').value || 'Anonymous';
+        const email = document.getElementById('suggestionEmail').value || '';
+        const suggestion = document.getElementById('suggestionText').value;
+        
+        if (!suggestion.trim()) {
+            showSuggestionMessage('Please enter your suggestion.', 'error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/suggestions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, email, suggestion })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showSuggestionMessage(data.message || 'Thank you for your suggestion!', 'success');
+                suggestionForm.reset();
+            } else {
+                showSuggestionMessage(data.error || 'Failed to submit suggestion.', 'error');
+            }
+        } catch (error) {
+            showSuggestionMessage('An error occurred: ' + error.message, 'error');
+        }
+    });
+}
+
+function showSuggestionMessage(message, type) {
+    if (suggestionMessage) {
+        suggestionMessage.textContent = message;
+        suggestionMessage.className = `suggestion-message ${type}`;
+        suggestionMessage.style.display = 'block';
+        
+        // Scroll to message
+        suggestionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        setTimeout(() => {
+            if (type === 'success') {
+                suggestionMessage.style.display = 'none';
+            }
+        }, 5000);
+    }
+}
+

@@ -9,6 +9,8 @@ import io
 import zipfile
 from pdf2image import convert_from_path
 import fitz  # PyMuPDF
+import json
+from datetime import datetime
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
@@ -16,11 +18,23 @@ app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max upload size
 
 UPLOAD_FOLDER = 'uploads'
 COMPRESSED_FOLDER = 'compressed'
+FORUM_DATA_FILE = 'forum_data.json'
+SUGGESTIONS_FILE = 'suggestions.json'
 MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB
 TARGET_SIZE = 100 * 1024 * 1024  # 100MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
+
+# Initialize forum data file if it doesn't exist
+if not os.path.exists(FORUM_DATA_FILE):
+    with open(FORUM_DATA_FILE, 'w') as f:
+        json.dump({'posts': []}, f)
+
+# Initialize suggestions file if it doesn't exist
+if not os.path.exists(SUGGESTIONS_FILE):
+    with open(SUGGESTIONS_FILE, 'w') as f:
+        json.dump({'suggestions': []}, f)
 
 ALLOWED_EXTENSIONS = {'pdf'}
 
@@ -141,8 +155,10 @@ def index():
 
 @app.route('/<path:path>')
 def serve_static(path):
-    if path in ['styles.css', 'script.js']:
+    if path in ['styles.css', 'script.js', 'forum.js']:
         return send_from_directory('.', path)
+    if path == 'forum.html':
+        return send_file('forum.html')
     return send_file('index.html')
 
 @app.route('/compress', methods=['POST'])
@@ -223,6 +239,138 @@ def cleanup_file(filename):
             return jsonify({'error': 'File not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/suggestions', methods=['POST'])
+def submit_suggestion():
+    try:
+        data = request.get_json()
+        name = data.get('name', 'Anonymous')
+        email = data.get('email', '')
+        suggestion = data.get('suggestion', '')
+        
+        if not suggestion:
+            return jsonify({'error': 'Suggestion text is required'}), 400
+        
+        # Load existing suggestions
+        with open(SUGGESTIONS_FILE, 'r') as f:
+            suggestions_data = json.load(f)
+        
+        # Add new suggestion
+        new_suggestion = {
+            'id': len(suggestions_data['suggestions']) + 1,
+            'name': name,
+            'email': email,
+            'suggestion': suggestion,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        suggestions_data['suggestions'].append(new_suggestion)
+        
+        # Save suggestions
+        with open(SUGGESTIONS_FILE, 'w') as f:
+            json.dump(suggestions_data, f, indent=2)
+        
+        return jsonify({'success': True, 'message': 'Thank you for your suggestion!'})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/forum/posts', methods=['GET'])
+def get_posts():
+    try:
+        with open(FORUM_DATA_FILE, 'r') as f:
+            forum_data = json.load(f)
+        
+        # Return posts in reverse order (newest first)
+        posts = forum_data.get('posts', [])
+        posts.reverse()
+        return jsonify({'posts': posts})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/forum/posts', methods=['POST'])
+def create_post():
+    try:
+        data = request.get_json()
+        author = data.get('author', 'Anonymous')
+        title = data.get('title', '')
+        content = data.get('content', '')
+        
+        if not title or not content:
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        # Load existing posts
+        with open(FORUM_DATA_FILE, 'r') as f:
+            forum_data = json.load(f)
+        
+        # Create new post
+        new_post = {
+            'id': len(forum_data['posts']) + 1,
+            'author': author,
+            'title': title,
+            'content': content,
+            'timestamp': datetime.now().isoformat(),
+            'comments': []
+        }
+        
+        forum_data['posts'].append(new_post)
+        
+        # Save posts
+        with open(FORUM_DATA_FILE, 'w') as f:
+            json.dump(forum_data, f, indent=2)
+        
+        return jsonify({'success': True, 'post': new_post})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/forum/posts/<int:post_id>/comments', methods=['POST'])
+def add_comment(post_id):
+    try:
+        data = request.get_json()
+        author = data.get('author', 'Anonymous')
+        content = data.get('content', '')
+        
+        if not content:
+            return jsonify({'error': 'Comment content is required'}), 400
+        
+        # Load existing posts
+        with open(FORUM_DATA_FILE, 'r') as f:
+            forum_data = json.load(f)
+        
+        # Find post
+        post = None
+        for p in forum_data['posts']:
+            if p['id'] == post_id:
+                post = p
+                break
+        
+        if not post:
+            return jsonify({'error': 'Post not found'}), 404
+        
+        # Add comment
+        new_comment = {
+            'id': len(post['comments']) + 1,
+            'author': author,
+            'content': content,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        post['comments'].append(new_comment)
+        
+        # Save posts
+        with open(FORUM_DATA_FILE, 'w') as f:
+            json.dump(forum_data, f, indent=2)
+        
+        return jsonify({'success': True, 'comment': new_comment})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/forum')
+def forum_page():
+    return send_file('forum.html')
 
 @app.route('/health')
 def health():
