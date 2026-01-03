@@ -1,422 +1,343 @@
-const uploadArea = document.getElementById('uploadArea');
-const fileInput = document.getElementById('fileInput');
-const progressContainer = document.getElementById('progressContainer');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const resultContainer = document.getElementById('resultContainer');
-const errorContainer = document.getElementById('errorContainer');
-const downloadBtn = document.getElementById('downloadBtn');
-const compressAnotherBtn = document.getElementById('compressAnotherBtn');
-const tryAgainBtn = document.getElementById('tryAgainBtn');
-
-let compressedFilename = '';
-let mergeFiles = [];
-let isMergeMode = false;
-
-// Click to upload
-uploadArea.addEventListener('click', () => {
-    fileInput.click();
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        
+        // Update buttons
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`${tab}-tab`).classList.add('active');
+        
+        // Reset states
+        resetCompressState();
+        resetMergeState();
+    });
 });
 
-// File input change
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleFile(e.target.files[0]);
-    }
-});
+// Compress PDF functionality
+const compressUpload = document.getElementById('compress-upload');
+const compressFile = document.getElementById('compress-file');
+const compressProgress = document.getElementById('compress-progress');
+const compressResult = document.getElementById('compress-result');
+const compressError = document.getElementById('compress-error');
+const compressDownload = document.getElementById('compress-download');
 
-// Drag and drop
-uploadArea.addEventListener('dragover', (e) => {
+let currentCompressedFile = null;
+
+compressUpload.addEventListener('click', () => compressFile.click());
+compressUpload.addEventListener('dragover', handleDragOver);
+compressUpload.addEventListener('dragleave', handleDragLeave);
+compressUpload.addEventListener('drop', handleCompressDrop);
+compressFile.addEventListener('change', (e) => handleCompressFile(e.target.files[0]));
+
+function handleDragOver(e) {
     e.preventDefault();
-    uploadArea.classList.add('dragover');
-});
+    e.currentTarget.classList.add('dragover');
+}
 
-uploadArea.addEventListener('dragleave', () => {
-    uploadArea.classList.remove('dragover');
-});
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('dragover');
+}
 
-uploadArea.addEventListener('drop', (e) => {
+function handleCompressDrop(e) {
     e.preventDefault();
-    uploadArea.classList.remove('dragover');
-    
-    if (e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
-    }
-});
+    e.currentTarget.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) handleCompressFile(file);
+}
 
-function handleFile(file) {
-    // Validate file type
-    if (file.type !== 'application/pdf') {
-        showError('Please upload a PDF file.');
+function handleCompressFile(file) {
+    if (!file.type.includes('pdf')) {
+        showError('compress', 'Please select a PDF file');
         return;
     }
     
-    // Validate file size (900000 KB)
-    const maxSize = 900000 * 1024;
+    const maxSize = 900000 * 1024; // 900MB
     if (file.size > maxSize) {
-        showError('File size exceeds 900000 KB limit.');
+        showError('compress', `File too large. Maximum size is 900MB`);
         return;
     }
     
-    // Hide previous results/errors
-    resultContainer.style.display = 'none';
-    errorContainer.style.display = 'none';
-    
-    // Show progress
-    progressContainer.style.display = 'block';
-    progressFill.style.width = '0%';
-    progressText.textContent = 'Uploading and compressing PDF...';
-    
-    // Upload and compress
     uploadAndCompress(file);
 }
 
 function uploadAndCompress(file) {
+    resetCompressState();
+    
     const formData = new FormData();
     formData.append('file', file);
     
-    // Simulate progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-        progress += Math.random() * 15;
-        if (progress > 90) progress = 90;
-        progressFill.style.width = progress + '%';
-    }, 200);
+    compressProgress.style.display = 'block';
+    simulateProgress('compress');
     
     fetch('/compress', {
         method: 'POST',
         body: formData
     })
-    .then(async response => {
-        clearInterval(progressInterval);
-        
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            // Try to get text error message
-            const text = await response.text();
-            throw new Error(text || `Server error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
+    .then(response => {
         if (!response.ok) {
-            throw new Error(data.error || `Server error: ${response.status}`);
+            return response.json().then(err => Promise.reject(err));
         }
-        
-        progressFill.style.width = '100%';
-        
+        return response.json();
+    })
+    .then(data => {
         if (data.success) {
-            setTimeout(() => {
-                showResult(data);
-            }, 500);
+            currentCompressedFile = data.filename;
+            showCompressResult(data);
         } else {
-            showError(data.error || 'Compression failed. Please try again.');
+            showError('compress', data.error || 'Compression failed');
         }
     })
     .catch(error => {
-        clearInterval(progressInterval);
-        // Extract meaningful error message
-        let errorMessage = error.message;
-        if (errorMessage.includes('Request Entity Too Large') || errorMessage.includes('413')) {
-            errorMessage = 'File too large. Maximum size is 900000 KB.';
-        } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
-            errorMessage = 'Network error. Please check your connection and try again.';
-        }
-        showError('An error occurred: ' + errorMessage);
+        showError('compress', error.error || error.message || 'An error occurred');
+    })
+    .finally(() => {
+        compressProgress.style.display = 'none';
     });
 }
 
-function showResult(data) {
-    progressContainer.style.display = 'none';
-    resultContainer.style.display = 'block';
-    
-    compressedFilename = data.filename;
-    
-    // Show compression stats, hide merge stats
-    document.getElementById('fileStats').style.display = 'block';
-    document.getElementById('mergeStats').style.display = 'none';
-    
-    document.getElementById('resultTitle').textContent = 'Compression Complete!';
-    
-    // Format file sizes
-    document.getElementById('originalSize').textContent = formatFileSize(data.original_size);
-    document.getElementById('compressedSize').textContent = formatFileSize(data.compressed_size);
-    document.getElementById('compressionRatio').textContent = data.compression_ratio + '%';
-    
-    // Update button text
-    document.getElementById('downloadBtn').textContent = 'Download Compressed PDF';
-    document.getElementById('compressAnotherBtn').textContent = 'Compress Another PDF';
+function showCompressResult(data) {
+    document.getElementById('original-size').textContent = formatBytes(data.original_size);
+    document.getElementById('compressed-size').textContent = formatBytes(data.compressed_size);
+    document.getElementById('compression-ratio').textContent = `${data.compression_ratio}%`;
+    compressResult.style.display = 'block';
+    compressResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function showError(message) {
-    progressContainer.style.display = 'none';
-    errorContainer.style.display = 'block';
-    document.getElementById('errorMessage').textContent = message;
-}
-
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-}
-
-// Download button
-downloadBtn.addEventListener('click', () => {
-    if (compressedFilename) {
-        window.location.href = `/download/${compressedFilename}`;
-        
-        // Clean up after a delay
-        setTimeout(() => {
-            fetch(`/cleanup/${compressedFilename}`, { method: 'DELETE' }).catch(() => {});
-        }, 5000);
+compressDownload.addEventListener('click', () => {
+    if (currentCompressedFile) {
+        window.location.href = `/download/${currentCompressedFile}`;
     }
 });
 
-// Compress another button
-compressAnotherBtn.addEventListener('click', () => {
-    resultContainer.style.display = 'none';
-    progressContainer.style.display = 'none';
-    fileInput.value = '';
-    compressedFilename = '';
-});
-
-// Try again button
-tryAgainBtn.addEventListener('click', () => {
-    errorContainer.style.display = 'none';
-    fileInput.value = '';
-});
-
-// Tab switching
-function switchTab(tab) {
-    const compressTab = document.getElementById('compressTab');
-    const mergeTab = document.getElementById('mergeTab');
-    const compressContent = document.getElementById('compressContent');
-    const mergeContent = document.getElementById('mergeContent');
-    
-    if (tab === 'compress') {
-        compressTab.classList.add('active');
-        mergeTab.classList.remove('active');
-        compressContent.style.display = 'block';
-        mergeContent.style.display = 'none';
-        isMergeMode = false;
-        resultContainer.style.display = 'none';
-        errorContainer.style.display = 'none';
-    } else {
-        compressTab.classList.remove('active');
-        mergeTab.classList.add('active');
-        compressContent.style.display = 'none';
-        mergeContent.style.display = 'block';
-        isMergeMode = true;
-        resultContainer.style.display = 'none';
-        errorContainer.style.display = 'none';
-    }
+function resetCompressState() {
+    compressResult.style.display = 'none';
+    compressError.style.display = 'none';
+    currentCompressedFile = null;
 }
 
-// Merge functionality
-const mergeUploadArea = document.getElementById('mergeUploadArea');
-const mergeFileInput = document.getElementById('mergeFileInput');
-const mergeFileList = document.getElementById('mergeFileList');
-const mergeFilesList = document.getElementById('mergeFilesList');
-const mergeBtn = document.getElementById('mergeBtn');
-const clearFilesBtn = document.getElementById('clearFilesBtn');
+// Merge PDFs functionality
+const mergeUpload = document.getElementById('merge-upload');
+const mergeFiles = document.getElementById('merge-files');
+const mergeFileList = document.getElementById('merge-file-list');
+const mergeFilesList = document.getElementById('merge-files-list');
+const mergeProgress = document.getElementById('merge-progress');
+const mergeResult = document.getElementById('merge-result');
+const mergeError = document.getElementById('merge-error');
+const mergeDownload = document.getElementById('merge-download');
 
-if (mergeUploadArea) {
-    mergeUploadArea.addEventListener('click', () => {
-        mergeFileInput.click();
-    });
-}
+let selectedFiles = [];
+let currentMergedFile = null;
 
-if (mergeFileInput) {
-    mergeFileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleMergeFiles(Array.from(e.target.files));
-        }
-    });
-}
+mergeUpload.addEventListener('click', () => mergeFiles.click());
+mergeUpload.addEventListener('dragover', handleDragOver);
+mergeUpload.addEventListener('dragleave', handleDragLeave);
+mergeUpload.addEventListener('drop', handleMergeDrop);
+mergeFiles.addEventListener('change', (e) => handleMergeFiles(Array.from(e.target.files)));
 
-if (mergeUploadArea) {
-    mergeUploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        mergeUploadArea.classList.add('dragover');
-    });
-
-    mergeUploadArea.addEventListener('dragleave', () => {
-        mergeUploadArea.classList.remove('dragover');
-    });
-
-    mergeUploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        mergeUploadArea.classList.remove('dragover');
-        
-        if (e.dataTransfer.files.length > 0) {
-            handleMergeFiles(Array.from(e.dataTransfer.files));
-        }
-    });
+function handleMergeDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragover');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.includes('pdf'));
+    if (files.length > 0) handleMergeFiles(files);
 }
 
 function handleMergeFiles(files) {
-    const maxSize = 900000 * 1024;
-    const validFiles = [];
+    const pdfFiles = files.filter(f => f.type.includes('pdf'));
     
-    files.forEach(file => {
-        if (file.type !== 'application/pdf') {
-            showError('Only PDF files are allowed.');
-            return;
-        }
-        
-        if (file.size > maxSize) {
-            showError(`File "${file.name}" exceeds 900000 KB limit.`);
-            return;
-        }
-        
-        validFiles.push(file);
-    });
-    
-    if (validFiles.length > 0) {
-        mergeFiles = validFiles;
-        updateMergeFileList();
-    }
-}
-
-function updateMergeFileList() {
-    if (mergeFiles.length < 2) {
-        mergeFileList.style.display = 'none';
+    if (pdfFiles.length < 2) {
+        showError('merge', 'Please select at least 2 PDF files');
         return;
     }
     
-    mergeFileList.style.display = 'block';
-    mergeFilesList.innerHTML = '';
+    const maxSize = 900000 * 1024;
+    const tooLarge = pdfFiles.find(f => f.size > maxSize);
+    if (tooLarge) {
+        showError('merge', 'One or more files are too large. Maximum size is 900MB per file');
+        return;
+    }
     
-    mergeFiles.forEach((file, index) => {
+    selectedFiles = pdfFiles;
+    displayMergeFileList();
+    uploadAndMerge();
+}
+
+function displayMergeFileList() {
+    mergeFilesList.innerHTML = '';
+    selectedFiles.forEach((file, index) => {
         const li = document.createElement('li');
         li.innerHTML = `
-            <span class="file-name">${escapeHtml(file.name)}</span>
-            <span class="file-size">${formatFileSize(file.size)}</span>
+            <span>${file.name}</span>
+            <span>${formatBytes(file.size)}</span>
         `;
         mergeFilesList.appendChild(li);
     });
-}
-
-if (mergeBtn) {
-    mergeBtn.addEventListener('click', () => {
-        if (mergeFiles.length < 2) {
-            showError('Please select at least 2 PDF files to merge.');
-            return;
-        }
-        
-        uploadAndMerge();
-    });
-}
-
-if (clearFilesBtn) {
-    clearFilesBtn.addEventListener('click', () => {
-        mergeFiles = [];
-        mergeFileInput.value = '';
-        mergeFileList.style.display = 'none';
-    });
+    mergeFileList.style.display = 'block';
 }
 
 function uploadAndMerge() {
-    const formData = new FormData();
+    resetMergeState();
     
-    mergeFiles.forEach(file => {
+    const formData = new FormData();
+    selectedFiles.forEach(file => {
         formData.append('files', file);
     });
     
-    // Hide previous results/errors
-    resultContainer.style.display = 'none';
-    errorContainer.style.display = 'none';
-    
-    // Show progress
-    progressContainer.style.display = 'block';
-    progressFill.style.width = '0%';
-    progressText.textContent = 'Uploading and merging PDFs...';
-    
-    // Simulate progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-        progress += Math.random() * 15;
-        if (progress > 90) progress = 90;
-        progressFill.style.width = progress + '%';
-    }, 200);
+    mergeProgress.style.display = 'block';
+    simulateProgress('merge');
     
     fetch('/merge', {
         method: 'POST',
         body: formData
     })
-    .then(async response => {
-        clearInterval(progressInterval);
-        
-        // Log response for debugging
-        console.log(`[MERGE] Response status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            console.error(`[MERGE] Non-JSON response: ${text.substring(0, 200)}`);
-            throw new Error(text || `Server error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
+    .then(response => {
         if (!response.ok) {
-            console.error(`[MERGE] Error response:`, data);
-            throw new Error(data.error || `Server error: ${response.status}`);
+            return response.json().then(err => Promise.reject(err));
         }
-        
-        progressFill.style.width = '100%';
-        
+        return response.json();
+    })
+    .then(data => {
         if (data.success) {
-            setTimeout(() => {
-                showMergeResult(data);
-            }, 500);
+            currentMergedFile = data.filename;
+            showMergeResult(data);
         } else {
-            showError(data.error || 'Merge failed. Please try again.');
+            showError('merge', data.error || 'Merge failed');
         }
     })
     .catch(error => {
-        clearInterval(progressInterval);
-        console.error('[MERGE] Fetch error:', error);
-        let errorMessage = error.message;
-        if (errorMessage.includes('Request Entity Too Large') || errorMessage.includes('413')) {
-            errorMessage = 'File too large. Maximum size is 900000 KB per file.';
-        } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
-            errorMessage = 'Network error. Please check your connection and try again.';
-        } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('page could not be found')) {
-            errorMessage = 'Server routing error. Please ensure the server is running the latest code and try again.';
-        }
-        showError('An error occurred: ' + errorMessage);
+        showError('merge', error.error || error.message || 'An error occurred');
+    })
+    .finally(() => {
+        mergeProgress.style.display = 'none';
     });
 }
 
 function showMergeResult(data) {
-    progressContainer.style.display = 'none';
-    resultContainer.style.display = 'block';
-    
-    compressedFilename = data.filename;
-    
-    // Hide compression stats, show merge stats
-    document.getElementById('fileStats').style.display = 'none';
-    document.getElementById('mergeStats').style.display = 'block';
-    
-    document.getElementById('resultTitle').textContent = 'Merge Complete!';
-    document.getElementById('fileCount').textContent = data.file_count;
-    document.getElementById('totalSize').textContent = formatFileSize(data.total_size);
-    document.getElementById('mergedSize').textContent = formatFileSize(data.merged_size);
-    
-    // Update button text
-    document.getElementById('downloadBtn').textContent = 'Download Merged PDF';
-    document.getElementById('compressAnotherBtn').textContent = 'Merge More PDFs';
-    
-    // Clear merge files
-    mergeFiles = [];
-    mergeFileInput.value = '';
+    document.getElementById('merge-count').textContent = data.file_count;
+    document.getElementById('merge-total-size').textContent = formatBytes(data.total_size);
+    document.getElementById('merge-size').textContent = formatBytes(data.merged_size);
+    mergeResult.style.display = 'block';
+    mergeResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+mergeDownload.addEventListener('click', () => {
+    if (currentMergedFile) {
+        window.location.href = `/download/${currentMergedFile}`;
+    }
+});
+
+function resetMergeState() {
+    mergeResult.style.display = 'none';
+    mergeError.style.display = 'none';
     mergeFileList.style.display = 'none';
+    currentMergedFile = null;
+}
+
+// Suggestions functionality
+const suggestionForm = document.getElementById('suggestion-form');
+const suggestionMessage = document.getElementById('suggestion-message');
+
+suggestionForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('suggestion-name').value.trim();
+    const email = document.getElementById('suggestion-email').value.trim();
+    const suggestion = document.getElementById('suggestion-text').value.trim();
+    
+    if (!suggestion) {
+        showSuggestionMessage('Please enter a suggestion', 'error');
+        return;
+    }
+    
+    const submitBtn = suggestionForm.querySelector('.submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+    
+    try {
+        const response = await fetch('/suggestions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ name, email, suggestion })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            showSuggestionMessage(data.message || 'Thank you for your suggestion!', 'success');
+            suggestionForm.reset();
+            loadSuggestions();
+        } else {
+            showSuggestionMessage(data.error || 'Failed to submit suggestion', 'error');
+        }
+    } catch (error) {
+        showSuggestionMessage('An error occurred. Please try again.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Suggestion';
+    }
+});
+
+function showSuggestionMessage(message, type) {
+    suggestionMessage.textContent = message;
+    suggestionMessage.className = `suggestion-message ${type}`;
+    suggestionMessage.style.display = 'block';
+    
+    setTimeout(() => {
+        suggestionMessage.style.display = 'none';
+    }, 5000);
+}
+
+function loadSuggestions() {
+    fetch('/suggestions')
+        .then(response => response.json())
+        .then(data => {
+            displaySuggestions(data.suggestions || []);
+        })
+        .catch(error => {
+            console.error('Error loading suggestions:', error);
+        });
+}
+
+function displaySuggestions(suggestions) {
+    const list = document.getElementById('suggestions-list');
+    list.innerHTML = '';
+    
+    if (suggestions.length === 0) {
+        list.innerHTML = '<p style="color: #666; text-align: center;">No suggestions yet. Be the first!</p>';
+        return;
+    }
+    
+    suggestions.forEach(suggestion => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        item.innerHTML = `
+            <div class="suggestion-item-header">
+                <span><strong>${suggestion.name}</strong></span>
+                <span>${formatDate(suggestion.timestamp)}</span>
+            </div>
+            <div class="suggestion-item-text">${escapeHtml(suggestion.suggestion)}</div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+// Utility functions
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function escapeHtml(text) {
@@ -425,179 +346,30 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Suggestions form
-const suggestionForm = document.getElementById('suggestionForm');
-const suggestionMessage = document.getElementById('suggestionMessage');
-const submitBtn = suggestionForm ? suggestionForm.querySelector('.submit-suggestion-btn') : null;
-
-if (suggestionForm) {
-    suggestionForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Hide any previous messages
-        if (suggestionMessage) {
-            suggestionMessage.style.display = 'none';
-        }
-        
-        const name = document.getElementById('suggestionName').value || 'Anonymous';
-        const email = document.getElementById('suggestionEmail').value || '';
-        const suggestion = document.getElementById('suggestionText').value;
-        
-        if (!suggestion.trim()) {
-            showSuggestionMessage('Please enter your suggestion.', 'error');
-            return;
-        }
-        
-        // Show loading state
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting...';
-        }
-        
-        try {
-            const response = await fetch('/suggestions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, email, suggestion })
-            });
-            
-            // Check if response is JSON
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                // Try to get text error message
-                const text = await response.text();
-                throw new Error(text || `Server error: ${response.status} ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || `Server error: ${response.status}`);
-            }
-            
-            if (data.success) {
-                showSuggestionMessage(data.message || 'Thank you for your suggestion!', 'success');
-                suggestionForm.reset();
-                // Reload suggestions to show the new one
-                setTimeout(() => {
-                    loadSuggestions();
-                }, 500);
-            } else {
-                showSuggestionMessage(data.error || 'Failed to submit suggestion.', 'error');
-            }
-        } catch (error) {
-            // Extract meaningful error message
-            let errorMessage = error.message;
-            if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
-                errorMessage = 'Network error. Please check your connection and try again.';
-            } else if (errorMessage.includes('The page')) {
-                errorMessage = 'Server error. Please try again later.';
-            }
-            showSuggestionMessage('An error occurred: ' + errorMessage, 'error');
-        } finally {
-            // Restore button state
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Submit Suggestion';
-            }
-        }
-    });
-}
-
-function showSuggestionMessage(message, type) {
-    if (suggestionMessage) {
-        suggestionMessage.textContent = message;
-        suggestionMessage.className = `suggestion-message ${type}`;
-        suggestionMessage.style.display = 'block';
-        suggestionMessage.style.opacity = '0';
-        
-        // Animate in
-        setTimeout(() => {
-            suggestionMessage.style.transition = 'opacity 0.3s ease';
-            suggestionMessage.style.opacity = '1';
-        }, 10);
-        
-        // Scroll to message
-        setTimeout(() => {
-            suggestionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
-        
-        // Auto-hide success messages after 5 seconds
-        if (type === 'success') {
-            setTimeout(() => {
-                suggestionMessage.style.transition = 'opacity 0.3s ease';
-                suggestionMessage.style.opacity = '0';
-                setTimeout(() => {
-                    suggestionMessage.style.display = 'none';
-                }, 300);
-            }, 5000);
-        }
-    }
-}
-
-// Load and display suggestions
-async function loadSuggestions() {
-    const suggestionsList = document.getElementById('suggestionsList');
-    if (!suggestionsList) return;
-    
-    try {
-        const response = await fetch('/suggestions');
-        
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            suggestionsList.innerHTML = '<p class="no-suggestions">Unable to load suggestions.</p>';
-            return;
-        }
-        
-        const data = await response.json();
-        
-        if (data.suggestions && data.suggestions.length > 0) {
-            displaySuggestions(data.suggestions);
+function simulateProgress(type) {
+    const progressFill = document.getElementById(`${type}-progress-fill`);
+    let width = 0;
+    const interval = setInterval(() => {
+        if (width >= 90) {
+            clearInterval(interval);
         } else {
-            suggestionsList.innerHTML = '<p class="no-suggestions">No suggestions yet. Be the first to share your ideas!</p>';
+            width += Math.random() * 10;
+            progressFill.style.width = Math.min(width, 90) + '%';
         }
-    } catch (error) {
-        suggestionsList.innerHTML = '<p class="no-suggestions">Unable to load suggestions.</p>';
-    }
+    }, 200);
 }
 
-function displaySuggestions(suggestions) {
-    const suggestionsList = document.getElementById('suggestionsList');
-    if (!suggestionsList) return;
+function showError(type, message) {
+    const errorContainer = document.getElementById(`${type}-error`);
+    const errorMessage = errorContainer.querySelector('.error-message');
+    errorMessage.textContent = message;
+    errorContainer.style.display = 'block';
+    errorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     
-    suggestionsList.innerHTML = '';
-    
-    suggestions.forEach(suggestion => {
-        const item = document.createElement('div');
-        item.className = 'suggestion-item';
-        
-        const date = new Date(suggestion.timestamp);
-        const formattedDate = date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        
-        item.innerHTML = `
-            <div class="suggestion-item-header">
-                <span class="suggestion-author">👤 ${escapeHtml(suggestion.name)}</span>
-                <span class="suggestion-date">${formattedDate}</span>
-            </div>
-            <div class="suggestion-text">${escapeHtml(suggestion.suggestion)}</div>
-        `;
-        
-        suggestionsList.appendChild(item);
-    });
+    setTimeout(() => {
+        errorContainer.style.display = 'none';
+    }, 5000);
 }
 
 // Load suggestions on page load
-if (document.getElementById('suggestionsList')) {
-    loadSuggestions();
-}
-
+loadSuggestions();

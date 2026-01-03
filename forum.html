@@ -5,47 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Community Forum - PDF Compressor</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .forum-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+        
+        .forum-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .forum-header h1 {
+            font-size: 2.5em;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .new-post-form {
+            background: #f8f9ff;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+        
+        .new-post-form h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .posts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .post-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+        
+        .post-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+        
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .post-title {
+            font-size: 1.5em;
+            color: #667eea;
+            margin: 0;
+        }
+        
+        .post-meta {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .post-content {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+        
+        .comments-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .comments-list {
+            margin-bottom: 20px;
+        }
+        
+        .comment-item {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .comment-content {
+            color: #333;
+            white-space: pre-wrap;
+        }
+        
+        .comment-form {
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <div class="background-animation"></div>
-    <div class="container forum-container">
-        <header>
-            <div class="logo-container">
-                <div class="logo-icon">💬</div>
-                <h1>Community Forum</h1>
-            </div>
-            <p class="subtitle">Share tips, ask questions, and connect with other users</p>
-            <a href="/" class="back-home-btn">← Back to Compressor</a>
-        </header>
+    <div class="forum-container">
+        <a href="/" class="back-link">← Back to Home</a>
+        
+        <div class="forum-header">
+            <h1>💬 Community Forum</h1>
+            <p class="subtitle">Share tips, ask questions, and connect with the community</p>
+        </div>
 
-        <section class="new-post-section">
+        <div class="new-post-form">
             <h2>Create New Post</h2>
-            <form id="newPostForm" class="post-form">
-                <div class="form-group">
-                    <input type="text" id="postAuthor" placeholder="Your Name (Optional)" class="form-input">
-                </div>
-                <div class="form-group">
-                    <input type="text" id="postTitle" placeholder="Post Title" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <textarea id="postContent" placeholder="What's on your mind?" class="form-textarea" rows="5" required></textarea>
-                </div>
-                <button type="submit" class="submit-post-btn">Create Post</button>
-                <div id="postMessage" class="post-message" style="display: none;"></div>
+            <form id="new-post-form">
+                <input type="text" id="post-author" placeholder="Your Name (optional)" class="form-input">
+                <input type="text" id="post-title" placeholder="Post Title" class="form-input" required>
+                <textarea id="post-content" placeholder="Write your post here..." class="form-textarea" required></textarea>
+                <button type="submit" class="submit-btn">Create Post</button>
             </form>
-        </section>
+            <div class="suggestion-message" id="post-message" style="display: none;"></div>
+        </div>
 
-        <section class="posts-section">
-            <h2>Recent Posts</h2>
-            <div id="postsContainer" class="posts-container">
-                <div class="loading">Loading posts...</div>
-            </div>
-        </section>
+        <div class="posts-container" id="posts-container">
+            <div class="loading">Loading posts...</div>
+        </div>
     </div>
+
+    <footer>
+        <p>&copy; 2024 PDF Compressor & Merger. Free online PDF tools.</p>
+    </footer>
 
     <script src="forum.js"></script>
 </body>
 </html>
-
-
-

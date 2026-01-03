@@ -28,15 +28,7 @@
       "dest": "app.py"
     },
     {
-      "src": "/cleanup/(.*)",
-      "dest": "app.py"
-    },
-    {
       "src": "/health",
-      "dest": "app.py"
-    },
-    {
-      "src": "/test-merge-route",
       "dest": "app.py"
     },
     {

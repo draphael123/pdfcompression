@@ -3,228 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Compressor - Compress PDFs up to 900000 KB</title>
+    <title>PDF Compressor & Merger - Free Online Tool</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="background-animation"></div>
     <div class="container">
         <header>
-            <div class="logo-container">
-                <div class="logo-icon">📄</div>
-                <h1>PDF Compressor</h1>
-            </div>
-            <p class="subtitle">Reduce your PDF file size by up to 95% without losing quality</p>
-            <div class="badge-container">
-                <span class="badge">⚡ Fast</span>
-                <span class="badge">🔒 Secure</span>
-                <span class="badge">🆓 Free</span>
-            </div>
+            <h1>📄 PDF Compressor & Merger</h1>
+            <p class="subtitle">Compress PDFs up to 900MB or merge multiple PDFs into one</p>
         </header>
 
-        <section class="benefits-section">
-            <h2>Why Use Our PDF Compressor?</h2>
-            <div class="benefits-grid">
-                <div class="benefit-card">
-                    <div class="benefit-icon">💾</div>
-                    <h3>Save Storage Space</h3>
-                    <p>Reduce file sizes from 900000 KB down to 100MB, freeing up valuable storage space on your devices.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">📧</div>
-                    <h3>Easy Sharing</h3>
-                    <p>Compressed PDFs are easier to email, upload, and share across platforms without size restrictions.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">⚡</div>
-                    <h3>Faster Loading</h3>
-                    <p>Smaller files load faster in browsers and PDF viewers, improving your workflow efficiency.</p>
-                </div>
-                <div class="benefit-card">
-                    <div class="benefit-icon">🔒</div>
-                    <h3>Secure Processing</h3>
-                    <p>Files are processed securely server-side and automatically deleted after download for your privacy.</p>
-                </div>
-            </div>
-        </section>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="compress">Compress PDF</button>
+            <button class="tab-btn" data-tab="merge">Merge PDFs</button>
+        </div>
 
-        <section class="instructions-section">
-            <h2>How to Use</h2>
-            <div class="instructions-steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Upload Your PDF</h3>
-                        <p>Drag and drop your PDF file into the upload area below, or click to browse and select a file. Maximum file size: 900000 KB.</p>
-                    </div>
-                </div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>Automatic Compression</h3>
-                        <p>Our advanced algorithm will automatically compress your PDF using multiple optimization techniques to reduce file size while maintaining quality.</p>
-                    </div>
-                </div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>Download Result</h3>
-                        <p>Once compression is complete, review the file size reduction and download your optimized PDF instantly.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <main>
-            <div class="tabs-container">
-                <button class="tab-btn active" id="compressTab" onclick="switchTab('compress')">
-                    📄 Compress PDF
-                </button>
-                <button class="tab-btn" id="mergeTab" onclick="switchTab('merge')">
-                    🔗 Merge PDFs
-                </button>
+        <!-- Compress PDF Tab -->
+        <div class="tab-content active" id="compress-tab">
+            <div class="upload-area" id="compress-upload">
+                <div class="upload-icon">📤</div>
+                <p class="upload-text">Drag and drop your PDF here, or click to browse</p>
+                <p class="upload-hint">Maximum file size: 900MB</p>
+                <input type="file" id="compress-file" accept=".pdf" hidden>
             </div>
 
-            <!-- Compress Tab -->
-            <div class="tab-content active" id="compressContent">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-content">
-                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        <h2>Drop your PDF here</h2>
-                        <p>or click to browse</p>
-                        <p class="file-info">Maximum file size: 900000 KB</p>
-                        <input type="file" id="fileInput" accept=".pdf" hidden>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Merge Tab -->
-            <div class="tab-content" id="mergeContent" style="display: none;">
-                <div class="merge-upload-area" id="mergeUploadArea">
-                    <div class="upload-content">
-                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            <line x1="16 13" x2="8 13"></line>
-                            <line x1="16 17" x2="8 17"></line>
-                            <polyline points="10 9 9 9 8 9"></polyline>
-                        </svg>
-                        <h2>Drop multiple PDFs here</h2>
-                        <p>or click to browse (select multiple files)</p>
-                        <p class="file-info">Select 2 or more PDFs to merge • Max 900000 KB per file</p>
-                        <input type="file" id="mergeFileInput" accept=".pdf" multiple hidden>
-                    </div>
-                </div>
-                <div id="mergeFileList" class="merge-file-list" style="display: none;">
-                    <h3>Selected Files:</h3>
-                    <ul id="mergeFilesList"></ul>
-                    <button class="merge-btn" id="mergeBtn">Merge PDFs</button>
-                    <button class="clear-files-btn" id="clearFilesBtn">Clear All</button>
-                </div>
-            </div>
-
-            <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-container" id="compress-progress" style="display: none;">
                 <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-fill" id="compress-progress-fill"></div>
                 </div>
-                <p class="progress-text" id="progressText">Compressing PDF...</p>
+                <p class="progress-text" id="compress-progress-text">Compressing...</p>
             </div>
 
-            <div class="result-container" id="resultContainer" style="display: none;">
+            <div class="result-container" id="compress-result" style="display: none;">
                 <div class="result-card">
-                    <div class="success-icon">✓</div>
-                    <h2 id="resultTitle">Compression Complete!</h2>
-                    <div class="file-stats" id="fileStats">
+                    <h3>✅ Compression Complete!</h3>
+                    <div class="result-stats">
                         <div class="stat">
                             <span class="stat-label">Original Size:</span>
-                            <span class="stat-value" id="originalSize">-</span>
+                            <span class="stat-value" id="original-size"></span>
                         </div>
                         <div class="stat">
                             <span class="stat-label">Compressed Size:</span>
-                            <span class="stat-value" id="compressedSize">-</span>
+                            <span class="stat-value" id="compressed-size"></span>
                         </div>
                         <div class="stat">
-                            <span class="stat-label">Compression:</span>
-                            <span class="stat-value success" id="compressionRatio">-</span>
+                            <span class="stat-label">Reduction:</span>
+                            <span class="stat-value" id="compression-ratio"></span>
                         </div>
                     </div>
-                    <div class="file-stats" id="mergeStats" style="display: none;">
+                    <button class="download-btn" id="compress-download">Download Compressed PDF</button>
+                </div>
+            </div>
+
+            <div class="error-container" id="compress-error" style="display: none;">
+                <div class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Merge PDFs Tab -->
+        <div class="tab-content" id="merge-tab">
+            <div class="upload-area" id="merge-upload">
+                <div class="upload-icon">📚</div>
+                <p class="upload-text">Drag and drop multiple PDFs here, or click to browse</p>
+                <p class="upload-hint">Select 2 or more PDF files to merge</p>
+                <input type="file" id="merge-files" accept=".pdf" multiple hidden>
+            </div>
+
+            <div class="file-list" id="merge-file-list" style="display: none;">
+                <h3>Selected Files:</h3>
+                <ul id="merge-files-list"></ul>
+            </div>
+
+            <div class="progress-container" id="merge-progress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="merge-progress-fill"></div>
+                </div>
+                <p class="progress-text" id="merge-progress-text">Merging PDFs...</p>
+            </div>
+
+            <div class="result-container" id="merge-result" style="display: none;">
+                <div class="result-card">
+                    <h3>✅ Merge Complete!</h3>
+                    <div class="result-stats">
                         <div class="stat">
                             <span class="stat-label">Files Merged:</span>
-                            <span class="stat-value" id="fileCount">-</span>
+                            <span class="stat-value" id="merge-count"></span>
                         </div>
                         <div class="stat">
                             <span class="stat-label">Total Size:</span>
-                            <span class="stat-value" id="totalSize">-</span>
+                            <span class="stat-value" id="merge-total-size"></span>
                         </div>
                         <div class="stat">
                             <span class="stat-label">Merged Size:</span>
-                            <span class="stat-value" id="mergedSize">-</span>
+                            <span class="stat-value" id="merge-size"></span>
                         </div>
                     </div>
-                    <button class="download-btn" id="downloadBtn">Download PDF</button>
-                    <button class="compress-another-btn" id="compressAnotherBtn">Process Another</button>
+                    <button class="download-btn" id="merge-download">Download Merged PDF</button>
                 </div>
             </div>
 
-            <div class="error-container" id="errorContainer" style="display: none;">
-                <div class="error-card">
-                    <div class="error-icon">✗</div>
-                    <h2>Error</h2>
-                    <p id="errorMessage"></p>
-                    <button class="try-again-btn" id="tryAgainBtn">Try Again</button>
+            <div class="error-container" id="merge-error" style="display: none;">
+                <div class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <section class="features">
+            <h2>Why Use Our PDF Tools?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Fast Processing</h3>
+                    <p>Compress or merge PDFs quickly with our optimized algorithms</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Secure & Private</h3>
+                    <p>Your files are processed securely and deleted after download</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💯</div>
+                    <h3>Free to Use</h3>
+                    <p>No registration required, completely free PDF tools</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Works Everywhere</h3>
+                    <p>Compatible with all devices and browsers</p>
                 </div>
             </div>
-        </main>
+        </section>
 
+        <!-- How to Use Section -->
+        <section class="instructions">
+            <h2>How to Use</h2>
+            <div class="instructions-list">
+                <div class="instruction-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Upload Your PDF(s)</h3>
+                        <p>Drag and drop your PDF file or click to browse. For merging, select multiple files.</p>
+                    </div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Wait for Processing</h3>
+                        <p>Our system will compress or merge your PDFs. This usually takes just a few seconds.</p>
+                    </div>
+                </div>
+                <div class="instruction-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Download Your File</h3>
+                        <p>Once complete, click the download button to save your processed PDF.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Suggestions Section -->
         <section class="suggestions-section">
-            <h2>💡 Have a Suggestion?</h2>
-            <p class="suggestions-intro">We'd love to hear your feedback and ideas to improve our PDF compressor!</p>
-            <form id="suggestionForm" class="suggestion-form">
-                <div class="form-group">
-                    <input type="text" id="suggestionName" placeholder="Your Name (Optional)" class="form-input">
-                </div>
-                <div class="form-group">
-                    <input type="email" id="suggestionEmail" placeholder="Your Email (Optional)" class="form-input">
-                </div>
-                <div class="form-group">
-                    <textarea id="suggestionText" placeholder="Your suggestion or feedback..." class="form-textarea" rows="4" required></textarea>
-                </div>
-                <button type="submit" class="submit-suggestion-btn">Submit Suggestion</button>
-                <div id="suggestionMessage" class="suggestion-message" style="display: none;"></div>
+            <h2>Have a Suggestion?</h2>
+            <p>We'd love to hear your feedback and ideas for improvement!</p>
+            <form id="suggestion-form" class="suggestion-form">
+                <input type="text" id="suggestion-name" placeholder="Your Name (optional)" class="form-input">
+                <input type="email" id="suggestion-email" placeholder="Your Email (optional)" class="form-input">
+                <textarea id="suggestion-text" placeholder="Your suggestion or feedback..." class="form-textarea" required></textarea>
+                <button type="submit" class="submit-btn">Submit Suggestion</button>
             </form>
-            
-            <div class="recent-suggestions" id="recentSuggestions">
+            <div class="suggestion-message" id="suggestion-message" style="display: none;"></div>
+
+            <div class="recent-suggestions">
                 <h3>Recent Suggestions</h3>
-                <div id="suggestionsList" class="suggestions-list">
-                    <p class="loading-suggestions">Loading suggestions...</p>
-                </div>
+                <div id="suggestions-list" class="suggestions-list"></div>
             </div>
         </section>
 
-        <section class="forum-link-section">
-            <div class="forum-link-card">
-                <div class="forum-icon">💬</div>
-                <h3>Join Our Community Forum</h3>
-                <p>Share tips, ask questions, and connect with other users</p>
-                <a href="/forum" class="forum-link-btn">Visit Forum</a>
+        <!-- Forum Link -->
+        <section class="forum-link">
+            <div class="forum-card">
+                <h2>💬 Join Our Community Forum</h2>
+                <p>Discuss PDF tips, share experiences, and get help from our community</p>
+                <a href="forum.html" class="forum-btn">Visit Forum</a>
             </div>
         </section>
-
-        <footer>
-            <div class="footer-content">
-                <p class="footer-main">🔒 Secure PDF Compression</p>
-                <p class="footer-sub">Files are processed server-side and automatically deleted after download</p>
-                <p class="footer-sub">No registration required • 100% Free • Privacy Protected</p>
-            </div>
-        </footer>
     </div>
+
+    <footer>
+        <p>&copy; 2024 PDF Compressor & Merger. Free online PDF tools.</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
 </html>
-
