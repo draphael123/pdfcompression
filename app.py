@@ -7,11 +7,16 @@ import PyPDF2
 from PIL import Image
 import io
 import zipfile
-# pdf2image requires system libraries - may not work on Vercel, using PyMuPDF instead
-# from pdf2image import convert_from_path
-import fitz  # PyMuPDF
 import json
 from datetime import datetime
+
+# Try to import PyMuPDF, fallback to PyPDF2 only if it fails
+try:
+    import fitz  # PyMuPDF
+    HAS_PYMUPDF = True
+except ImportError:
+    HAS_PYMUPDF = False
+    print("Warning: PyMuPDF not available, using PyPDF2 only")
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
@@ -20,11 +25,16 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_KB * 1024  # 900000 KB max uplo
 
 # Use /tmp for serverless environments (Vercel provides /tmp)
 # Fallback to local directories for local development
-if os.path.exists('/tmp'):
-    BASE_DIR = '/tmp'
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+def get_base_dir():
+    try:
+        if os.path.exists('/tmp'):
+            return '/tmp'
+        else:
+            return os.path.dirname(os.path.abspath(__file__))
+    except:
+        return '/tmp'  # Default to /tmp for serverless
 
+BASE_DIR = get_base_dir()
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 COMPRESSED_FOLDER = os.path.join(BASE_DIR, 'compressed')
 FORUM_DATA_FILE = os.path.join(BASE_DIR, 'forum_data.json')
@@ -32,28 +42,28 @@ SUGGESTIONS_FILE = os.path.join(BASE_DIR, 'suggestions.json')
 MAX_FILE_SIZE = MAX_FILE_SIZE_KB * 1024  # 900000 KB
 TARGET_SIZE = 100 * 1024 * 1024  # 100MB
 
-# Initialize directories and files (with error handling for serverless)
-try:
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
-except Exception as e:
-    print(f"Warning: Could not create directories: {e}")
+# Initialize directories and files lazily (only when needed)
+def ensure_directories():
+    try:
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
+    except Exception as e:
+        print(f"Warning: Could not create directories: {e}")
 
-# Initialize forum data file if it doesn't exist
-try:
-    if not os.path.exists(FORUM_DATA_FILE):
-        with open(FORUM_DATA_FILE, 'w') as f:
-            json.dump({'posts': []}, f)
-except Exception as e:
-    print(f"Warning: Could not initialize forum data file: {e}")
-
-# Initialize suggestions file if it doesn't exist
-try:
-    if not os.path.exists(SUGGESTIONS_FILE):
-        with open(SUGGESTIONS_FILE, 'w') as f:
-            json.dump({'suggestions': []}, f)
-except Exception as e:
-    print(f"Warning: Could not initialize suggestions file: {e}")
+def ensure_data_files():
+    try:
+        if not os.path.exists(FORUM_DATA_FILE):
+            with open(FORUM_DATA_FILE, 'w') as f:
+                json.dump({'posts': []}, f)
+    except Exception as e:
+        print(f"Warning: Could not initialize forum data file: {e}")
+    
+    try:
+        if not os.path.exists(SUGGESTIONS_FILE):
+            with open(SUGGESTIONS_FILE, 'w') as f:
+                json.dump({'suggestions': []}, f)
+    except Exception as e:
+        print(f"Warning: Could not initialize suggestions file: {e}")
 
 ALLOWED_EXTENSIONS = {'pdf'}
 
@@ -62,6 +72,10 @@ def allowed_file(filename):
 
 def compress_pdf_advanced(input_path, output_path, target_size):
     """Advanced PDF compression using multiple strategies"""
+    # If PyMuPDF is not available, use basic compression
+    if not HAS_PYMUPDF:
+        return compress_pdf_basic(input_path, output_path)
+    
     try:
         # Strategy 1: Try PyMuPDF compression (most effective)
         doc = fitz.open(input_path)
@@ -226,10 +240,13 @@ def merge_pdfs(file_paths, output_path):
 
 @app.route('/')
 def index():
+    ensure_directories()
+    ensure_data_files()
     return send_file('index.html')
 
 @app.route('/compress', methods=['POST'])
 def compress_pdf():
+    ensure_directories()
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
@@ -291,6 +308,7 @@ def test_merge_route():
 
 @app.route('/merge', methods=['POST'])
 def merge_pdfs_endpoint():
+    ensure_directories()
     file_paths = []
     try:
         # Log request for debugging
@@ -446,6 +464,7 @@ def cleanup_file(filename):
 
 @app.route('/suggestions', methods=['POST'])
 def submit_suggestion():
+    ensure_data_files()
     try:
         # Check if request has JSON data
         if not request.is_json:
@@ -508,6 +527,7 @@ def submit_suggestion():
 
 @app.route('/suggestions', methods=['GET'])
 def get_suggestions():
+    ensure_data_files()
     try:
         if not os.path.exists(SUGGESTIONS_FILE):
             return jsonify({'suggestions': []})
@@ -526,6 +546,7 @@ def get_suggestions():
 
 @app.route('/forum/posts', methods=['GET'])
 def get_posts():
+    ensure_data_files()
     try:
         with open(FORUM_DATA_FILE, 'r') as f:
             forum_data = json.load(f)
@@ -540,6 +561,7 @@ def get_posts():
 
 @app.route('/forum/posts', methods=['POST'])
 def create_post():
+    ensure_data_files()
     try:
         data = request.get_json()
         author = data.get('author', 'Anonymous')
@@ -576,6 +598,7 @@ def create_post():
 
 @app.route('/forum/posts/<int:post_id>/comments', methods=['POST'])
 def add_comment(post_id):
+    ensure_data_files()
     try:
         data = request.get_json()
         author = data.get('author', 'Anonymous')
