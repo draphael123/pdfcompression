@@ -7,11 +7,73 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="background-animation"></div>
     <div class="container">
         <header>
-            <h1>📄 PDF Compressor</h1>
-            <p class="subtitle">Compress your PDF files up to 2000MB down to 100MB</p>
+            <div class="logo-container">
+                <div class="logo-icon">📄</div>
+                <h1>PDF Compressor</h1>
+            </div>
+            <p class="subtitle">Reduce your PDF file size by up to 95% without losing quality</p>
+            <div class="badge-container">
+                <span class="badge">⚡ Fast</span>
+                <span class="badge">🔒 Secure</span>
+                <span class="badge">🆓 Free</span>
+            </div>
         </header>
+
+        <section class="benefits-section">
+            <h2>Why Use Our PDF Compressor?</h2>
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">💾</div>
+                    <h3>Save Storage Space</h3>
+                    <p>Reduce file sizes from 2000MB down to 100MB, freeing up valuable storage space on your devices.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">📧</div>
+                    <h3>Easy Sharing</h3>
+                    <p>Compressed PDFs are easier to email, upload, and share across platforms without size restrictions.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">⚡</div>
+                    <h3>Faster Loading</h3>
+                    <p>Smaller files load faster in browsers and PDF viewers, improving your workflow efficiency.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🔒</div>
+                    <h3>Secure Processing</h3>
+                    <p>Files are processed securely server-side and automatically deleted after download for your privacy.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="instructions-section">
+            <h2>How to Use</h2>
+            <div class="instructions-steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Upload Your PDF</h3>
+                        <p>Drag and drop your PDF file into the upload area below, or click to browse and select a file. Maximum file size: 2000MB.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Automatic Compression</h3>
+                        <p>Our advanced algorithm will automatically compress your PDF using multiple optimization techniques to reduce file size while maintaining quality.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Download Result</h3>
+                        <p>Once compression is complete, review the file size reduction and download your optimized PDF instantly.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <main>
             <div class="upload-area" id="uploadArea">
@@ -69,7 +131,11 @@
         </main>
 
         <footer>
-            <p>Secure PDF compression • Files are processed server-side and deleted after download</p>
+            <div class="footer-content">
+                <p class="footer-main">🔒 Secure PDF Compression</p>
+                <p class="footer-sub">Files are processed server-side and automatically deleted after download</p>
+                <p class="footer-sub">No registration required • 100% Free • Privacy Protected</p>
+            </div>
         </footer>
     </div>
 
