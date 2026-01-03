@@ -589,6 +589,14 @@ def forum_page():
 def health():
     return jsonify({'status': 'ok'})
 
+@app.route('/<path:path>')
+def serve_static(path):
+    if path in ['styles.css', 'script.js', 'forum.js']:
+        return send_from_directory('.', path)
+    if path == 'forum.html':
+        return send_file('forum.html')
+    return send_file('index.html')
+
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE_KB:,} KB'}), 413
