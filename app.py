@@ -417,7 +417,11 @@ def submit_suggestion():
     try:
         # Check if request has JSON data
         if not request.is_json:
-            return jsonify({'error': 'Content-Type must be application/json'}), 400
+            # Try to get JSON from request anyway (some clients don't set header correctly)
+            try:
+                data = request.get_json(force=True)
+            except:
+                return jsonify({'error': 'Content-Type must be application/json'}), 400
         
         data = request.get_json()
         if not data:

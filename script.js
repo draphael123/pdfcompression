@@ -443,7 +443,19 @@ if (suggestionForm) {
                 body: JSON.stringify({ name, email, suggestion })
             });
             
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                // Try to get text error message
+                const text = await response.text();
+                throw new Error(text || `Server error: ${response.status} ${response.statusText}`);
+            }
+            
             const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || `Server error: ${response.status}`);
+            }
             
             if (data.success) {
                 showSuggestionMessage(data.message || 'Thank you for your suggestion!', 'success');
@@ -452,7 +464,14 @@ if (suggestionForm) {
                 showSuggestionMessage(data.error || 'Failed to submit suggestion.', 'error');
             }
         } catch (error) {
-            showSuggestionMessage('An error occurred: ' + error.message, 'error');
+            // Extract meaningful error message
+            let errorMessage = error.message;
+            if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+                errorMessage = 'Network error. Please check your connection and try again.';
+            } else if (errorMessage.includes('The page')) {
+                errorMessage = 'Server error. Please try again later.';
+            }
+            showSuggestionMessage('An error occurred: ' + errorMessage, 'error');
         }
     });
 }
@@ -483,6 +502,14 @@ async function loadSuggestions() {
     
     try {
         const response = await fetch('/suggestions');
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            suggestionsList.innerHTML = '<p class="no-suggestions">Unable to load suggestions.</p>';
+            return;
+        }
+        
         const data = await response.json();
         
         if (data.suggestions && data.suggestions.length > 0) {
