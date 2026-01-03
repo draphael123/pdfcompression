@@ -14,13 +14,14 @@ from datetime import datetime
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
-app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max upload size
+MAX_FILE_SIZE_KB = 900000  # 900000 KB
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_KB * 1024  # 900000 KB max upload size
 
 UPLOAD_FOLDER = 'uploads'
 COMPRESSED_FOLDER = 'compressed'
 FORUM_DATA_FILE = 'forum_data.json'
 SUGGESTIONS_FILE = 'suggestions.json'
-MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB
+MAX_FILE_SIZE = MAX_FILE_SIZE_KB * 1024  # 900000 KB
 TARGET_SIZE = 100 * 1024 * 1024  # 100MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -184,7 +185,7 @@ def compress_pdf():
         file_size = os.path.getsize(input_path)
         if file_size > MAX_FILE_SIZE:
             os.remove(input_path)
-            return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE / (1024*1024*1024)}GB'}), 400
+            return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE_KB:,} KB ({MAX_FILE_SIZE / (1024*1024):.1f} MB)'}), 400
         
         # Generate output filename
         base_name = os.path.splitext(filename)[0]
@@ -378,7 +379,7 @@ def health():
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    return jsonify({'error': 'File too large. Maximum size is 1GB'}), 413
+    return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE_KB:,} KB'}), 413
 
 @app.errorhandler(500)
 def internal_error(error):
