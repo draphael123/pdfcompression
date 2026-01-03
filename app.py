@@ -478,6 +478,24 @@ def submit_suggestion():
         print(f"Suggestion error: {e}")
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
+@app.route('/suggestions', methods=['GET'])
+def get_suggestions():
+    try:
+        if not os.path.exists(SUGGESTIONS_FILE):
+            return jsonify({'suggestions': []})
+        
+        with open(SUGGESTIONS_FILE, 'r') as f:
+            suggestions_data = json.load(f)
+        
+        # Return suggestions in reverse order (newest first), limit to 10
+        suggestions = suggestions_data.get('suggestions', [])
+        suggestions.reverse()
+        return jsonify({'suggestions': suggestions[:10]})
+    
+    except Exception as e:
+        print(f"Error loading suggestions: {e}")
+        return jsonify({'suggestions': []})
+
 @app.route('/forum/posts', methods=['GET'])
 def get_posts():
     try:

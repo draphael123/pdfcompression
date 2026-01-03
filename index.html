@@ -76,17 +76,54 @@
         </section>
 
         <main>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-content">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    <h2>Drop your PDF here</h2>
-                    <p>or click to browse</p>
-                    <p class="file-info">Maximum file size: 900000 KB</p>
-                    <input type="file" id="fileInput" accept=".pdf" hidden>
+            <div class="tabs-container">
+                <button class="tab-btn active" id="compressTab" onclick="switchTab('compress')">
+                    📄 Compress PDF
+                </button>
+                <button class="tab-btn" id="mergeTab" onclick="switchTab('merge')">
+                    🔗 Merge PDFs
+                </button>
+            </div>
+
+            <!-- Compress Tab -->
+            <div class="tab-content active" id="compressContent">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <h2>Drop your PDF here</h2>
+                        <p>or click to browse</p>
+                        <p class="file-info">Maximum file size: 900000 KB</p>
+                        <input type="file" id="fileInput" accept=".pdf" hidden>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Merge Tab -->
+            <div class="tab-content" id="mergeContent" style="display: none;">
+                <div class="merge-upload-area" id="mergeUploadArea">
+                    <div class="upload-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16 13" x2="8 13"></line>
+                            <line x1="16 17" x2="8 17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <h2>Drop multiple PDFs here</h2>
+                        <p>or click to browse (select multiple files)</p>
+                        <p class="file-info">Select 2 or more PDFs to merge • Max 900000 KB per file</p>
+                        <input type="file" id="mergeFileInput" accept=".pdf" multiple hidden>
+                    </div>
+                </div>
+                <div id="mergeFileList" class="merge-file-list" style="display: none;">
+                    <h3>Selected Files:</h3>
+                    <ul id="mergeFilesList"></ul>
+                    <button class="merge-btn" id="mergeBtn">Merge PDFs</button>
+                    <button class="clear-files-btn" id="clearFilesBtn">Clear All</button>
                 </div>
             </div>
 
@@ -100,8 +137,8 @@
             <div class="result-container" id="resultContainer" style="display: none;">
                 <div class="result-card">
                     <div class="success-icon">✓</div>
-                    <h2>Compression Complete!</h2>
-                    <div class="file-stats">
+                    <h2 id="resultTitle">Compression Complete!</h2>
+                    <div class="file-stats" id="fileStats">
                         <div class="stat">
                             <span class="stat-label">Original Size:</span>
                             <span class="stat-value" id="originalSize">-</span>
@@ -115,8 +152,22 @@
                             <span class="stat-value success" id="compressionRatio">-</span>
                         </div>
                     </div>
-                    <button class="download-btn" id="downloadBtn">Download Compressed PDF</button>
-                    <button class="compress-another-btn" id="compressAnotherBtn">Compress Another PDF</button>
+                    <div class="file-stats" id="mergeStats" style="display: none;">
+                        <div class="stat">
+                            <span class="stat-label">Files Merged:</span>
+                            <span class="stat-value" id="fileCount">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Total Size:</span>
+                            <span class="stat-value" id="totalSize">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Merged Size:</span>
+                            <span class="stat-value" id="mergedSize">-</span>
+                        </div>
+                    </div>
+                    <button class="download-btn" id="downloadBtn">Download PDF</button>
+                    <button class="compress-another-btn" id="compressAnotherBtn">Process Another</button>
                 </div>
             </div>
 
@@ -146,6 +197,13 @@
                 <button type="submit" class="submit-suggestion-btn">Submit Suggestion</button>
                 <div id="suggestionMessage" class="suggestion-message" style="display: none;"></div>
             </form>
+            
+            <div class="recent-suggestions" id="recentSuggestions">
+                <h3>Recent Suggestions</h3>
+                <div id="suggestionsList" class="suggestions-list">
+                    <p class="loading-suggestions">Loading suggestions...</p>
+                </div>
+            </div>
         </section>
 
         <section class="forum-link-section">
