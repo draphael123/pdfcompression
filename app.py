@@ -150,6 +150,62 @@ def compress_pdf_basic(input_path, output_path):
         print(f"Basic compression failed: {e}")
         return False
 
+def merge_pdfs(file_paths, output_path):
+    """Merge multiple PDF files into one"""
+    try:
+        if not file_paths or len(file_paths) < 2:
+            print("Not enough files to merge")
+            return False
+        
+        pdf_writer = PyPDF2.PdfWriter()
+        pages_added = 0
+        
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                print(f"File not found: {file_path}")
+                continue
+            
+            try:
+                with open(file_path, 'rb') as input_file:
+                    pdf_reader = PyPDF2.PdfReader(input_file)
+                    
+                    if len(pdf_reader.pages) == 0:
+                        print(f"PDF has no pages: {file_path}")
+                        continue
+                    
+                    # Add all pages from this PDF
+                    for page_num in range(len(pdf_reader.pages)):
+                        try:
+                            page = pdf_reader.pages[page_num]
+                            pdf_writer.add_page(page)
+                            pages_added += 1
+                        except Exception as e:
+                            print(f"Error adding page {page_num} from {file_path}: {e}")
+                            continue
+            except Exception as e:
+                print(f"Error reading PDF {file_path}: {e}")
+                continue
+        
+        if pages_added == 0:
+            print("No pages were added to the merged PDF")
+            return False
+        
+        # Write merged PDF
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'wb') as output_file:
+            pdf_writer.write(output_file)
+        
+        if not os.path.exists(output_path):
+            print("Output file was not created")
+            return False
+        
+        return True
+    except Exception as e:
+        print(f"PDF merge failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 @app.route('/')
 def index():
     return send_file('index.html')
@@ -218,6 +274,129 @@ def compress_pdf():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/merge', methods=['POST'])
+def merge_pdfs_endpoint():
+    file_paths = []
+    try:
+        if 'files' not in request.files:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        files = request.files.getlist('files')
+        
+        if not files or len(files) == 0:
+            return jsonify({'error': 'No files provided'}), 400
+        
+        # Validate and save all files
+        total_size = 0
+        
+        for file in files:
+            if not file or file.filename == '':
+                continue
+            
+            if not allowed_file(file.filename):
+                # Clean up already saved files
+                for path in file_paths:
+                    if os.path.exists(path):
+                        try:
+                            os.remove(path)
+                        except:
+                            pass
+                return jsonify({'error': 'Invalid file type. Only PDF files are allowed.'}), 400
+            
+            try:
+                # Save uploaded file
+                filename = secure_filename(file.filename)
+                if not filename:
+                    continue
+                    
+                input_path = os.path.join(UPLOAD_FOLDER, f"merge_{len(file_paths)}_{filename}")
+                file.save(input_path)
+                
+                # Check file size
+                if not os.path.exists(input_path):
+                    continue
+                    
+                file_size = os.path.getsize(input_path)
+                total_size += file_size
+                
+                if file_size > MAX_FILE_SIZE:
+                    # Clean up already saved files
+                    for path in file_paths:
+                        if os.path.exists(path):
+                            try:
+                                os.remove(path)
+                            except:
+                                pass
+                    if os.path.exists(input_path):
+                        try:
+                            os.remove(input_path)
+                        except:
+                            pass
+                    return jsonify({'error': f'One or more files are too large. Maximum size per file is {MAX_FILE_SIZE_KB:,} KB'}), 400
+                
+                file_paths.append(input_path)
+            except Exception as e:
+                print(f"Error processing file {file.filename}: {e}")
+                continue
+        
+        if len(file_paths) < 2:
+            # Clean up files
+            for path in file_paths:
+                if os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
+            return jsonify({'error': 'Please upload at least 2 valid PDF files'}), 400
+        
+        # Generate output filename
+        output_filename = f"merged_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        output_path = os.path.join(COMPRESSED_FOLDER, output_filename)
+        
+        # Merge PDFs
+        success = merge_pdfs(file_paths, output_path)
+        
+        # Clean up input files
+        for path in file_paths:
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except:
+                    pass
+        
+        if not success:
+            if os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except:
+                    pass
+            return jsonify({'error': 'Merge failed. Please ensure all files are valid PDFs.'}), 500
+        
+        if not os.path.exists(output_path):
+            return jsonify({'error': 'Merge failed. Output file was not created.'}), 500
+        
+        # Get merged file size
+        merged_size = os.path.getsize(output_path)
+        
+        return jsonify({
+            'success': True,
+            'filename': output_filename,
+            'total_size': total_size,
+            'merged_size': merged_size,
+            'file_count': len(file_paths)
+        })
+    
+    except Exception as e:
+        # Clean up any remaining files
+        for path in file_paths:
+            if os.path.exists(path):
+                try:
+                    os.remove(path)
+                except:
+                    pass
+        print(f"Merge error: {e}")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
 @app.route('/download/<filename>')
 def download_file(filename):
     try:
@@ -244,37 +423,60 @@ def cleanup_file(filename):
 @app.route('/suggestions', methods=['POST'])
 def submit_suggestion():
     try:
-        data = request.get_json()
-        name = data.get('name', 'Anonymous')
-        email = data.get('email', '')
-        suggestion = data.get('suggestion', '')
+        # Check if request has JSON data
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
         
-        if not suggestion:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        name = data.get('name', 'Anonymous') or 'Anonymous'
+        email = data.get('email', '') or ''
+        suggestion = data.get('suggestion', '') or ''
+        
+        if not suggestion or not suggestion.strip():
             return jsonify({'error': 'Suggestion text is required'}), 400
         
+        # Ensure suggestions file exists and has correct structure
+        if not os.path.exists(SUGGESTIONS_FILE):
+            with open(SUGGESTIONS_FILE, 'w') as f:
+                json.dump({'suggestions': []}, f)
+        
         # Load existing suggestions
-        with open(SUGGESTIONS_FILE, 'r') as f:
-            suggestions_data = json.load(f)
+        try:
+            with open(SUGGESTIONS_FILE, 'r') as f:
+                suggestions_data = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            suggestions_data = {'suggestions': []}
+        
+        if 'suggestions' not in suggestions_data:
+            suggestions_data['suggestions'] = []
         
         # Add new suggestion
         new_suggestion = {
             'id': len(suggestions_data['suggestions']) + 1,
-            'name': name,
-            'email': email,
-            'suggestion': suggestion,
+            'name': name.strip(),
+            'email': email.strip(),
+            'suggestion': suggestion.strip(),
             'timestamp': datetime.now().isoformat()
         }
         
         suggestions_data['suggestions'].append(new_suggestion)
         
         # Save suggestions
-        with open(SUGGESTIONS_FILE, 'w') as f:
-            json.dump(suggestions_data, f, indent=2)
+        try:
+            with open(SUGGESTIONS_FILE, 'w') as f:
+                json.dump(suggestions_data, f, indent=2)
+        except Exception as e:
+            print(f"Error saving suggestion: {e}")
+            return jsonify({'error': 'Failed to save suggestion'}), 500
         
         return jsonify({'success': True, 'message': 'Thank you for your suggestion!'})
     
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print(f"Suggestion error: {e}")
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 @app.route('/forum/posts', methods=['GET'])
 def get_posts():
