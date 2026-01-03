@@ -35,6 +35,9 @@ compressed/
 forum_data.json
 suggestions.json
 
+# Vercel
+.vercel
+
 # IDE
 .vscode/
 .idea/

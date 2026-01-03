@@ -14,6 +14,10 @@ from datetime import datetime
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
+
+# Vercel serverless function handler
+def handler(request):
+    return app(request.environ, lambda status, headers: None)
 MAX_FILE_SIZE_KB = 900000  # 900000 KB
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_KB * 1024  # 900000 KB max upload size
 
