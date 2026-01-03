@@ -8,9 +8,40 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/compress",
       "dest": "app.py"
+    },
+    {
+      "src": "/merge",
+      "dest": "app.py"
+    },
+    {
+      "src": "/suggestions",
+      "dest": "app.py"
+    },
+    {
+      "src": "/forum/posts(.*)",
+      "dest": "app.py"
+    },
+    {
+      "src": "/download/(.*)",
+      "dest": "app.py"
+    },
+    {
+      "src": "/cleanup/(.*)",
+      "dest": "app.py"
+    },
+    {
+      "src": "/health",
+      "dest": "app.py"
+    },
+    {
+      "src": "/(.*\\.(html|css|js|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
-

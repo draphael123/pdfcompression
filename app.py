@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import tempfile
@@ -18,49 +18,65 @@ except ImportError:
     HAS_PYMUPDF = False
     print("Warning: PyMuPDF not available, using PyPDF2 only")
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__)
 CORS(app)
 MAX_FILE_SIZE_KB = 900000  # 900000 KB
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_KB * 1024  # 900000 KB max upload size
 
 # Use /tmp for serverless environments (Vercel provides /tmp)
 # Fallback to local directories for local development
+# Lazy initialization - only called when needed, not at module level
 def get_base_dir():
+    """Get base directory for file operations - lazy initialization"""
     try:
         if os.path.exists('/tmp'):
             return '/tmp'
         else:
+            # Only resolve __file__ when actually needed
             return os.path.dirname(os.path.abspath(__file__))
     except:
         return '/tmp'  # Default to /tmp for serverless
 
-BASE_DIR = get_base_dir()
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-COMPRESSED_FOLDER = os.path.join(BASE_DIR, 'compressed')
-FORUM_DATA_FILE = os.path.join(BASE_DIR, 'forum_data.json')
-SUGGESTIONS_FILE = os.path.join(BASE_DIR, 'suggestions.json')
+def get_upload_folder():
+    """Get upload folder path - lazy initialization"""
+    return os.path.join(get_base_dir(), 'uploads')
+
+def get_compressed_folder():
+    """Get compressed folder path - lazy initialization"""
+    return os.path.join(get_base_dir(), 'compressed')
+
+def get_forum_data_file():
+    """Get forum data file path - lazy initialization"""
+    return os.path.join(get_base_dir(), 'forum_data.json')
+
+def get_suggestions_file():
+    """Get suggestions file path - lazy initialization"""
+    return os.path.join(get_base_dir(), 'suggestions.json')
+
 MAX_FILE_SIZE = MAX_FILE_SIZE_KB * 1024  # 900000 KB
 TARGET_SIZE = 100 * 1024 * 1024  # 100MB
 
 # Initialize directories and files lazily (only when needed)
 def ensure_directories():
     try:
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
+        os.makedirs(get_upload_folder(), exist_ok=True)
+        os.makedirs(get_compressed_folder(), exist_ok=True)
     except Exception as e:
         print(f"Warning: Could not create directories: {e}")
 
 def ensure_data_files():
     try:
-        if not os.path.exists(FORUM_DATA_FILE):
-            with open(FORUM_DATA_FILE, 'w') as f:
+        forum_file = get_forum_data_file()
+        if not os.path.exists(forum_file):
+            with open(forum_file, 'w') as f:
                 json.dump({'posts': []}, f)
     except Exception as e:
         print(f"Warning: Could not initialize forum data file: {e}")
     
     try:
-        if not os.path.exists(SUGGESTIONS_FILE):
-            with open(SUGGESTIONS_FILE, 'w') as f:
+        suggestions_file = get_suggestions_file()
+        if not os.path.exists(suggestions_file):
+            with open(suggestions_file, 'w') as f:
                 json.dump({'suggestions': []}, f)
     except Exception as e:
         print(f"Warning: Could not initialize suggestions file: {e}")
@@ -238,11 +254,6 @@ def merge_pdfs(file_paths, output_path):
         traceback.print_exc()
         return False
 
-@app.route('/')
-def index():
-    ensure_directories()
-    ensure_data_files()
-    return send_file('index.html')
 
 @app.route('/compress', methods=['POST'])
 def compress_pdf():
@@ -261,7 +272,7 @@ def compress_pdf():
         
         # Save uploaded file
         filename = secure_filename(file.filename)
-        input_path = os.path.join(UPLOAD_FOLDER, filename)
+        input_path = os.path.join(get_upload_folder(), filename)
         file.save(input_path)
         
         # Check file size
@@ -273,7 +284,7 @@ def compress_pdf():
         # Generate output filename
         base_name = os.path.splitext(filename)[0]
         output_filename = f"{base_name}_compressed.pdf"
-        output_path = os.path.join(COMPRESSED_FOLDER, output_filename)
+        output_path = os.path.join(get_compressed_folder(), output_filename)
         
         # Compress PDF
         success = compress_pdf_advanced(input_path, output_path, TARGET_SIZE)
@@ -347,7 +358,7 @@ def merge_pdfs_endpoint():
                 if not filename:
                     continue
                     
-                input_path = os.path.join(UPLOAD_FOLDER, f"merge_{len(file_paths)}_{filename}")
+                input_path = os.path.join(get_upload_folder(), f"merge_{len(file_paths)}_{filename}")
                 file.save(input_path)
                 
                 # Check file size
@@ -389,7 +400,7 @@ def merge_pdfs_endpoint():
         
         # Generate output filename
         output_filename = f"merged_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        output_path = os.path.join(COMPRESSED_FOLDER, output_filename)
+        output_path = os.path.join(get_compressed_folder(), output_filename)
         
         # Merge PDFs
         success = merge_pdfs(file_paths, output_path)
@@ -442,7 +453,7 @@ def merge_pdfs_endpoint():
 @app.route('/download/<filename>')
 def download_file(filename):
     try:
-        file_path = os.path.join(COMPRESSED_FOLDER, secure_filename(filename))
+        file_path = os.path.join(get_compressed_folder(), secure_filename(filename))
         if os.path.exists(file_path):
             return send_file(file_path, as_attachment=True)
         else:
@@ -453,7 +464,7 @@ def download_file(filename):
 @app.route('/cleanup/<filename>', methods=['DELETE'])
 def cleanup_file(filename):
     try:
-        file_path = os.path.join(COMPRESSED_FOLDER, secure_filename(filename))
+        file_path = os.path.join(get_compressed_folder(), secure_filename(filename))
         if os.path.exists(file_path):
             os.remove(file_path)
             return jsonify({'success': True})
@@ -486,13 +497,14 @@ def submit_suggestion():
             return jsonify({'error': 'Suggestion text is required'}), 400
         
         # Ensure suggestions file exists and has correct structure
-        if not os.path.exists(SUGGESTIONS_FILE):
-            with open(SUGGESTIONS_FILE, 'w') as f:
+        suggestions_file = get_suggestions_file()
+        if not os.path.exists(suggestions_file):
+            with open(suggestions_file, 'w') as f:
                 json.dump({'suggestions': []}, f)
         
         # Load existing suggestions
         try:
-            with open(SUGGESTIONS_FILE, 'r') as f:
+            with open(suggestions_file, 'r') as f:
                 suggestions_data = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
             suggestions_data = {'suggestions': []}
@@ -513,7 +525,7 @@ def submit_suggestion():
         
         # Save suggestions
         try:
-            with open(SUGGESTIONS_FILE, 'w') as f:
+            with open(suggestions_file, 'w') as f:
                 json.dump(suggestions_data, f, indent=2)
         except Exception as e:
             print(f"Error saving suggestion: {e}")
@@ -529,10 +541,11 @@ def submit_suggestion():
 def get_suggestions():
     ensure_data_files()
     try:
-        if not os.path.exists(SUGGESTIONS_FILE):
+        suggestions_file = get_suggestions_file()
+        if not os.path.exists(suggestions_file):
             return jsonify({'suggestions': []})
         
-        with open(SUGGESTIONS_FILE, 'r') as f:
+        with open(suggestions_file, 'r') as f:
             suggestions_data = json.load(f)
         
         # Return suggestions in reverse order (newest first), limit to 10
@@ -548,7 +561,7 @@ def get_suggestions():
 def get_posts():
     ensure_data_files()
     try:
-        with open(FORUM_DATA_FILE, 'r') as f:
+        with open(get_forum_data_file(), 'r') as f:
             forum_data = json.load(f)
         
         # Return posts in reverse order (newest first)
@@ -572,7 +585,8 @@ def create_post():
             return jsonify({'error': 'Title and content are required'}), 400
         
         # Load existing posts
-        with open(FORUM_DATA_FILE, 'r') as f:
+        forum_file = get_forum_data_file()
+        with open(forum_file, 'r') as f:
             forum_data = json.load(f)
         
         # Create new post
@@ -588,7 +602,7 @@ def create_post():
         forum_data['posts'].append(new_post)
         
         # Save posts
-        with open(FORUM_DATA_FILE, 'w') as f:
+        with open(forum_file, 'w') as f:
             json.dump(forum_data, f, indent=2)
         
         return jsonify({'success': True, 'post': new_post})
@@ -608,7 +622,8 @@ def add_comment(post_id):
             return jsonify({'error': 'Comment content is required'}), 400
         
         # Load existing posts
-        with open(FORUM_DATA_FILE, 'r') as f:
+        forum_file = get_forum_data_file()
+        with open(forum_file, 'r') as f:
             forum_data = json.load(f)
         
         # Find post
@@ -632,7 +647,7 @@ def add_comment(post_id):
         post['comments'].append(new_comment)
         
         # Save posts
-        with open(FORUM_DATA_FILE, 'w') as f:
+        with open(forum_file, 'w') as f:
             json.dump(forum_data, f, indent=2)
         
         return jsonify({'success': True, 'comment': new_comment})
@@ -640,21 +655,9 @@ def add_comment(post_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/forum')
-def forum_page():
-    return send_file('forum.html')
-
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok'})
-
-@app.route('/<path:path>')
-def serve_static(path):
-    if path in ['styles.css', 'script.js', 'forum.js']:
-        return send_from_directory('.', path)
-    if path == 'forum.html':
-        return send_file('forum.html')
-    return send_file('index.html')
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
