@@ -659,6 +659,19 @@ def add_comment(post_id):
 def health():
     return jsonify({'status': 'ok'})
 
+@app.route('/')
+def index():
+    """Serve index.html - fallback if Vercel routing doesn't catch it"""
+    try:
+        # Try to serve from current directory
+        index_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+        if os.path.exists(index_path):
+            return send_file(index_path)
+        # If not found, return a simple response
+        return jsonify({'error': 'index.html not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.errorhandler(413)
 def request_entity_too_large(error):
     return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE_KB:,} KB'}), 413
