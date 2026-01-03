@@ -7,7 +7,8 @@ import PyPDF2
 from PIL import Image
 import io
 import zipfile
-from pdf2image import convert_from_path
+# pdf2image requires system libraries - may not work on Vercel, using PyMuPDF instead
+# from pdf2image import convert_from_path
 import fitz  # PyMuPDF
 import json
 from datetime import datetime
@@ -17,25 +18,42 @@ CORS(app)
 MAX_FILE_SIZE_KB = 900000  # 900000 KB
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_KB * 1024  # 900000 KB max upload size
 
-UPLOAD_FOLDER = 'uploads'
-COMPRESSED_FOLDER = 'compressed'
-FORUM_DATA_FILE = 'forum_data.json'
-SUGGESTIONS_FILE = 'suggestions.json'
+# Use /tmp for serverless environments (Vercel provides /tmp)
+# Fallback to local directories for local development
+if os.path.exists('/tmp'):
+    BASE_DIR = '/tmp'
+else:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+COMPRESSED_FOLDER = os.path.join(BASE_DIR, 'compressed')
+FORUM_DATA_FILE = os.path.join(BASE_DIR, 'forum_data.json')
+SUGGESTIONS_FILE = os.path.join(BASE_DIR, 'suggestions.json')
 MAX_FILE_SIZE = MAX_FILE_SIZE_KB * 1024  # 900000 KB
 TARGET_SIZE = 100 * 1024 * 1024  # 100MB
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
+# Initialize directories and files (with error handling for serverless)
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(COMPRESSED_FOLDER, exist_ok=True)
+except Exception as e:
+    print(f"Warning: Could not create directories: {e}")
 
 # Initialize forum data file if it doesn't exist
-if not os.path.exists(FORUM_DATA_FILE):
-    with open(FORUM_DATA_FILE, 'w') as f:
-        json.dump({'posts': []}, f)
+try:
+    if not os.path.exists(FORUM_DATA_FILE):
+        with open(FORUM_DATA_FILE, 'w') as f:
+            json.dump({'posts': []}, f)
+except Exception as e:
+    print(f"Warning: Could not initialize forum data file: {e}")
 
 # Initialize suggestions file if it doesn't exist
-if not os.path.exists(SUGGESTIONS_FILE):
-    with open(SUGGESTIONS_FILE, 'w') as f:
-        json.dump({'suggestions': []}, f)
+try:
+    if not os.path.exists(SUGGESTIONS_FILE):
+        with open(SUGGESTIONS_FILE, 'w') as f:
+            json.dump({'suggestions': []}, f)
+except Exception as e:
+    print(f"Warning: Could not initialize suggestions file: {e}")
 
 ALLOWED_EXTENSIONS = {'pdf'}
 
