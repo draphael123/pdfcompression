@@ -49,10 +49,10 @@ function handleFile(file) {
         return;
     }
     
-    // Validate file size (2000MB)
-    const maxSize = 2000 * 1024 * 1024;
+    // Validate file size (1GB)
+    const maxSize = 1024 * 1024 * 1024;
     if (file.size > maxSize) {
-        showError('File size exceeds 2000MB limit.');
+        showError('File size exceeds 1GB limit.');
         return;
     }
     
@@ -117,7 +117,7 @@ function uploadAndCompress(file) {
         // Extract meaningful error message
         let errorMessage = error.message;
         if (errorMessage.includes('Request Entity Too Large') || errorMessage.includes('413')) {
-            errorMessage = 'File too large. Maximum size is 2000MB.';
+            errorMessage = 'File too large. Maximum size is 1GB.';
         } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
             errorMessage = 'Network error. Please check your connection and try again.';
         }

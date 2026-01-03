@@ -1,10 +1,10 @@
 # PDF Compressor Website
 
-A web application that allows users to compress PDF files up to 2000MB down to 100MB.
+A web application that allows users to compress PDF files up to 1GB down to 100MB.
 
 ## Features
 
-- Upload PDFs up to 2000MB
+- Upload PDFs up to 1GB
 - Advanced compression algorithms
 - Drag-and-drop file upload
 - Real-time compression progress

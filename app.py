@@ -12,11 +12,11 @@ import fitz  # PyMuPDF
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
-app.config['MAX_CONTENT_LENGTH'] = 2000 * 1024 * 1024  # 2000MB max upload size
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1GB max upload size
 
 UPLOAD_FOLDER = 'uploads'
 COMPRESSED_FOLDER = 'compressed'
-MAX_FILE_SIZE = 2000 * 1024 * 1024  # 2000MB
+MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1GB
 TARGET_SIZE = 100 * 1024 * 1024  # 100MB
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -168,7 +168,7 @@ def compress_pdf():
         file_size = os.path.getsize(input_path)
         if file_size > MAX_FILE_SIZE:
             os.remove(input_path)
-            return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE / (1024*1024)}MB'}), 400
+            return jsonify({'error': f'File too large. Maximum size is {MAX_FILE_SIZE / (1024*1024*1024)}GB'}), 400
         
         # Generate output filename
         base_name = os.path.splitext(filename)[0]
@@ -230,7 +230,7 @@ def health():
 
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    return jsonify({'error': 'File too large. Maximum size is 2000MB'}), 413
+    return jsonify({'error': 'File too large. Maximum size is 1GB'}), 413
 
 @app.errorhandler(500)
 def internal_error(error):
