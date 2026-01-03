@@ -352,15 +352,20 @@ function uploadAndMerge() {
     .then(async response => {
         clearInterval(progressInterval);
         
+        // Log response for debugging
+        console.log(`[MERGE] Response status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
+        
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
+            console.error(`[MERGE] Non-JSON response: ${text.substring(0, 200)}`);
             throw new Error(text || `Server error: ${response.status} ${response.statusText}`);
         }
         
         const data = await response.json();
         
         if (!response.ok) {
+            console.error(`[MERGE] Error response:`, data);
             throw new Error(data.error || `Server error: ${response.status}`);
         }
         
@@ -376,11 +381,14 @@ function uploadAndMerge() {
     })
     .catch(error => {
         clearInterval(progressInterval);
+        console.error('[MERGE] Fetch error:', error);
         let errorMessage = error.message;
         if (errorMessage.includes('Request Entity Too Large') || errorMessage.includes('413')) {
             errorMessage = 'File too large. Maximum size is 900000 KB per file.';
         } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
             errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (errorMessage.includes('NOT_FOUND') || errorMessage.includes('page could not be found')) {
+            errorMessage = 'Server routing error. Please ensure the server is running the latest code and try again.';
         }
         showError('An error occurred: ' + errorMessage);
     });

@@ -266,14 +266,24 @@ def compress_pdf():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/test-merge-route', methods=['GET'])
+def test_merge_route():
+    """Test endpoint to verify merge route is accessible"""
+    return jsonify({'status': 'merge route is accessible', 'message': 'Routing is working correctly'})
+
 @app.route('/merge', methods=['POST'])
 def merge_pdfs_endpoint():
     file_paths = []
     try:
+        # Log request for debugging
+        print(f"[MERGE] Request received - Content-Type: {request.content_type}, Files: {len(request.files)}")
+        
         if 'files' not in request.files:
+            print("[MERGE] Error: No 'files' key in request.files")
             return jsonify({'error': 'No files provided'}), 400
         
         files = request.files.getlist('files')
+        print(f"[MERGE] Processing {len(files)} files")
         
         if not files or len(files) == 0:
             return jsonify({'error': 'No files provided'}), 400
@@ -370,6 +380,8 @@ def merge_pdfs_endpoint():
         # Get merged file size
         merged_size = os.path.getsize(output_path)
         
+        print(f"[MERGE] Success - Merged {len(file_paths)} files into {output_filename} ({merged_size} bytes)")
+        
         return jsonify({
             'success': True,
             'filename': output_filename,
@@ -386,7 +398,9 @@ def merge_pdfs_endpoint():
                     os.remove(path)
                 except:
                     pass
-        print(f"Merge error: {e}")
+        print(f"[MERGE] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
 @app.route('/download/<filename>')
