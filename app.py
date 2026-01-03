@@ -14,10 +14,6 @@ from datetime import datetime
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
-
-# Vercel serverless function handler
-def handler(request):
-    return app(request.environ, lambda status, headers: None)
 MAX_FILE_SIZE_KB = 900000  # 900000 KB
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_KB * 1024  # 900000 KB max upload size
 
@@ -626,6 +622,9 @@ def request_entity_too_large(error):
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({'error': 'An internal error occurred. Please try again.'}), 500
+
+# Export handler for Vercel serverless functions
+handler = app
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
