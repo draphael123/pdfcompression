@@ -210,14 +210,6 @@ def merge_pdfs(file_paths, output_path):
 def index():
     return send_file('index.html')
 
-@app.route('/<path:path>')
-def serve_static(path):
-    if path in ['styles.css', 'script.js', 'forum.js']:
-        return send_from_directory('.', path)
-    if path == 'forum.html':
-        return send_file('forum.html')
-    return send_file('index.html')
-
 @app.route('/compress', methods=['POST'])
 def compress_pdf():
     try:
