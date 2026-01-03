@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Compressor - Compress PDFs up to 2000MB</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 PDF Compressor</h1>
+            <p class="subtitle">Compress your PDF files up to 2000MB down to 100MB</p>
+        </header>
+
+        <main>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h2>Drop your PDF here</h2>
+                    <p>or click to browse</p>
+                    <p class="file-info">Maximum file size: 2000MB</p>
+                    <input type="file" id="fileInput" accept=".pdf" hidden>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Compressing PDF...</p>
+            </div>
+
+            <div class="result-container" id="resultContainer" style="display: none;">
+                <div class="result-card">
+                    <div class="success-icon">✓</div>
+                    <h2>Compression Complete!</h2>
+                    <div class="file-stats">
+                        <div class="stat">
+                            <span class="stat-label">Original Size:</span>
+                            <span class="stat-value" id="originalSize">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Compressed Size:</span>
+                            <span class="stat-value" id="compressedSize">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Compression:</span>
+                            <span class="stat-value success" id="compressionRatio">-</span>
+                        </div>
+                    </div>
+                    <button class="download-btn" id="downloadBtn">Download Compressed PDF</button>
+                    <button class="compress-another-btn" id="compressAnotherBtn">Compress Another PDF</button>
+                </div>
+            </div>
+
+            <div class="error-container" id="errorContainer" style="display: none;">
+                <div class="error-card">
+                    <div class="error-icon">✗</div>
+                    <h2>Error</h2>
+                    <p id="errorMessage"></p>
+                    <button class="try-again-btn" id="tryAgainBtn">Try Again</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Secure PDF compression • Files are processed server-side and deleted after download</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
