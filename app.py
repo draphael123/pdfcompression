@@ -642,8 +642,10 @@ def internal_error(error):
     return jsonify({'error': 'An internal error occurred. Please try again.'}), 500
 
 # Export handler for Vercel serverless functions
+# Vercel expects the Flask app to be accessible as 'handler'
 handler = app
 
+# For local development
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
 
