@@ -12,6 +12,7 @@ import fitz  # PyMuPDF
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 CORS(app)
+app.config['MAX_CONTENT_LENGTH'] = 2000 * 1024 * 1024  # 2000MB max upload size
 
 UPLOAD_FOLDER = 'uploads'
 COMPRESSED_FOLDER = 'compressed'
@@ -226,6 +227,14 @@ def cleanup_file(filename):
 @app.route('/health')
 def health():
     return jsonify({'status': 'ok'})
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({'error': 'File too large. Maximum size is 2000MB'}), 413
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'An internal error occurred. Please try again.'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

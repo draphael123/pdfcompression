@@ -85,9 +85,23 @@ function uploadAndCompress(file) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(async response => {
         clearInterval(progressInterval);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // Try to get text error message
+            const text = await response.text();
+            throw new Error(text || `Server error: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || `Server error: ${response.status}`);
+        }
+        
         progressFill.style.width = '100%';
         
         if (data.success) {
@@ -100,7 +114,14 @@ function uploadAndCompress(file) {
     })
     .catch(error => {
         clearInterval(progressInterval);
-        showError('An error occurred: ' + error.message);
+        // Extract meaningful error message
+        let errorMessage = error.message;
+        if (errorMessage.includes('Request Entity Too Large') || errorMessage.includes('413')) {
+            errorMessage = 'File too large. Maximum size is 2000MB.';
+        } else if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+        }
+        showError('An error occurred: ' + errorMessage);
     });
 }
 
